@@ -5,28 +5,39 @@ import subprocess
 
 network = "192.168.104.0/24"
 
-scan = subprocess.check_output(
-    f"nmap -p 5985 --open {network} -oG -",
-    shell=True
-).decode()
+try:
+    scan = subprocess.check_output(
+        ["nmap", "-p", "5985", "--open", network, "-oG", "-"]
+    ).decode()
 
-hosts = []
+    hosts = []
 
-for line in scan.splitlines():
-    if "5985/open" in line:
-        ip = line.split()[1]
-        hosts.append(ip)
+    for line in scan.splitlines():
+        if "5985/open" in line:
+            ip = line.split()[1]
+            hosts.append(ip)
 
-inventory = {
-    "windows": {
-        "hosts": hosts,
-        "vars": {
-            "ansible_connection": "winrm",
-            "ansible_port": 5985,
-            "ansible_winrm_transport": "ntlm",
-            "ansible_winrm_server_cert_validation": "ignore"
+    inventory = {
+        "all": {
+            "hosts": hosts,
+            "vars": {
+                "ansible_connection": "winrm",
+                "ansible_port": 5985,
+                "ansible_winrm_transport": "ntlm",
+                "ansible_winrm_server_cert_validation": "ignore"
+            }
         }
     }
-}
 
-print(json.dumps(inventory, indent=2))
+    print(json.dumps(inventory, indent=2))
+
+except Exception as e:
+    print(json.dumps({
+        "_meta": {
+            "hostvars": {}
+        },
+        "all": {
+            "hosts": []
+        },
+        "error": str(e)
+    }))
